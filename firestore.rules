@@ -1,0 +1,36 @@
+rules_version = '2';
+// Open by design: anyone with the link can view and log. Writes are limited to the
+// three collections the site uses and checked for the right shape and sane sizes.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function smallText(v) { return v == null || (v is string && v.size() <= 200); }
+
+    match /players/{id} {
+      allow read: if true;
+      allow delete: if true;
+      allow create, update: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && smallText(request.resource.data.get('notes', null));
+    }
+
+    match /strings/{id} {
+      allow read: if true;
+      allow delete: if true;
+      allow create, update: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.setsPerReel is number && request.resource.data.setsPerReel > 0
+        && request.resource.data.baselineSets is number;
+    }
+
+    match /jobs/{id} {
+      allow read: if true;
+      allow delete: if true;
+      allow create, update: if request.resource.data.playerId is string
+        && request.resource.data.racquets is number
+        && request.resource.data.racquets > 0 && request.resource.data.racquets <= 20
+        && request.resource.data.at is number
+        && smallText(request.resource.data.get('notes', null))
+        && smallText(request.resource.data.get('stringerName', null));
+    }
+  }
+}

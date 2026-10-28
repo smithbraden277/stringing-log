@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Baylor Tennis Stringing</title>
+<meta name="theme-color" content="#154734">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%228%22 cy=%228%22 r=%227%22 fill=%22%23ffb81c%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+[hidden] { display: none !important; }
+body { margin: 0; }
+img { max-width: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* Layout: sticky header with tabs; Log tab = quick-log form beside the running log, stacking on phones. */
+:root {
+  --bg: #f1f4ef;
+  --surface: #ffffff;
+  --sunk: #e7ece5;
+  --ink: #15212b;
+  --head: #154734;
+  --head-fg: #f6f3e6;
+  --muted: #5a6670;
+  --line: #d5dcd3;
+  --ball: #ffb81c;
+  --ball-ink: #1f1600;
+  --court: #1d6447;
+  --good: #2c7a4b;
+  --warn: #a8560a;
+  --bad: #b3261e;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141a; --head: #0c2a1f; --head-fg: #e6edf1; --surface: #161f28; --sunk: #1d2832; --ink: #e6edf1; --muted: #92a0ab; --line: #273440;
+    --ball: #f6b733; --ball-ink: #1f1600; --court: #74c79f; --good: #6ec392; --warn: #f0a650; --bad: #f2837a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141a; --head: #0c2a1f; --head-fg: #e6edf1; --surface: #161f28; --sunk: #1d2832; --ink: #e6edf1; --muted: #92a0ab; --line: #273440;
+  --ball: #f6b733; --ball-ink: #1f1600; --court: #74c79f; --good: #6ec392; --warn: #f0a650; --bad: #f2837a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--head); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--head); color: var(--head-fg); }
+header.top .wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-block: 10px; }
+.brand { font: 700 24px/1 var(--display); letter-spacing: .02em; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+.who { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.who button { background: none; border: 1px solid color-mix(in srgb, var(--head-fg) 40%, transparent); color: var(--head-fg); border-radius: 6px; padding: 6px 10px; font: 600 13px/1 var(--body); cursor: pointer; }
+.brand .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--ball); box-shadow: inset -3px -2px 0 rgba(0,0,0,.18); }
+nav.tabs { display: flex; gap: 4px; margin-left: auto; }
+nav.tabs a { color: var(--head-fg); opacity: .7; text-decoration: none; font: 600 15px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; padding: 9px 12px; border-radius: 6px; }
+nav.tabs a:hover { opacity: 1; }
+nav.tabs a[aria-current="page"] { opacity: 1; background: var(--ball); color: var(--ball-ink); }
+main { padding-block: 20px 60px; }
+h2 { font: 700 22px/1.1 var(--display); text-transform: uppercase; letter-spacing: .04em; margin: 0; text-wrap: balance; }
+h3 { font: 600 13px/1.2 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0; }
+.muted { color: var(--muted); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.banner { border: 1px solid var(--line); background: var(--sunk); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; }
+.banner[data-kind="warn"] { border-color: var(--warn); }
+
+/* KPI strip */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 4px; }
+.kpi b { font: 700 30px/1 var(--display); }
+.kpi small { color: var(--muted); }
+
+/* Log layout */
+.logGrid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .logGrid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 16px; min-width: 0; }
+.field { display: grid; gap: 8px; }
+.lbl { font: 600 12px/1 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+input, select, textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; width: 100%; min-width: 0; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--court); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 210px; overflow-y: auto; padding: 2px; }
+.chip { font: 500 14px/1 var(--body); border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 9px 13px; cursor: pointer; }
+.chip:hover { border-color: var(--court); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip.add { border-style: dashed; color: var(--muted); }
+.sess { display: grid; gap: 8px; }
+.sess .none { color: var(--muted); font-size: 14px; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; text-align: center; }
+.srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.srow .who { font: 700 19px/1.1 var(--display); }
+.srow .setup { font-size: 12px; color: var(--muted); }
+.srow select { grid-column: 1 / -1; font-size: 14px; padding: 7px 8px; }
+.stepper { display: flex; align-items: center; gap: 4px; }
+.stepper button { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 22px/1 var(--display); cursor: pointer; }
+.stepper output { min-width: 34px; text-align: center; font: 700 26px/1 var(--display); }
+.stepper .x { width: 30px; border: 0; background: none; color: var(--muted); font-size: 20px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row2 > * { min-width: 0; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); cursor: pointer; }
+.toggle input { width: auto; }
+.btn { font: 600 15px/1 var(--body); border-radius: 8px; padding: 11px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--court); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.go { background: var(--ball); color: var(--ball-ink); border-color: var(--ball); font: 700 20px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; padding: 15px; width: 100%; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.small { padding: 7px 10px; font-size: 13px; }
+.btn.danger { color: var(--bad); }
+.linkish { background: none; border: 0; color: var(--court); font: inherit; cursor: pointer; padding: 0; text-decoration: underline; }
+
+/* Log table */
+.listHead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.listHead input { max-width: 220px; }
+.tableWrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font: 600 11px/1 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 8px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.fresh td { background: color-mix(in srgb, var(--ball) 22%, transparent); }
+td .qty { font: 700 20px/1 var(--display); }
+td .sub { color: var(--muted); font-size: 12px; }
+.empty { padding: 28px 12px; text-align: center; color: var(--muted); }
+
+/* Inventory */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; margin-top: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; align-content: start; }
+.card .name { font: 700 22px/1.05 var(--display); }
+.card .meta { color: var(--muted); font-size: 13px; }
+.big { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.big b { font: 700 44px/1 var(--display); }
+.reels { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.reel { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--court); background: radial-gradient(circle, var(--surface) 0 26%, var(--court) 27% 100%); }
+.reel.part { background: conic-gradient(var(--court) calc(var(--p) * 1%), var(--sunk) 0); border-color: var(--court); }
+.bar { height: 8px; background: var(--sunk); border-radius: 99px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--court); }
+.pill { display: inline-block; font: 600 11px/1 var(--body); text-transform: uppercase; letter-spacing: .08em; padding: 5px 8px; border-radius: 99px; border: 1px solid currentColor; }
+.pill.ok { color: var(--good); } .pill.low { color: var(--warn); } .pill.out { color: var(--bad); }
+.cardActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.est { font-size: 12px; color: var(--muted); }
+
+/* Players */
+.plist { display: grid; gap: 8px; margin-top: 14px; }
+.prow { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto auto; gap: 12px; align-items: center; }
+.prow .pn { font: 700 20px/1.1 var(--display); }
+@media (max-width: 640px) { .prow { grid-template-columns: minmax(0, 1fr) auto; } .prow .setup { grid-column: 1 / -1; order: 3; } }
+
+/* Modal */
+.scrim { position: fixed; inset: 0; background: rgba(5, 10, 15, .55); z-index: 20; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal { background: var(--surface); color: var(--ink); border-radius: 12px; width: min(460px, 100%); max-height: 100%; overflow-y: auto; padding: 18px; display: grid; gap: 14px; }
+.modal .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets .chip { font-size: 12px; padding: 6px 9px; }
+.hint { font-size: 12px; color: var(--muted); }
+
+/* Toast */
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 11px 14px; border-radius: 8px; display: flex; gap: 14px; align-items: center; z-index: 30; max-width: calc(100% - 32px); }
+.toast button { background: none; border: 0; color: var(--ball); font: 600 14px/1 var(--body); cursor: pointer; }
+@media (prefers-reduced-motion: no-preference) { tr.fresh td { transition: background 1.5s; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot" aria-hidden="true"></span>Baylor Tennis <span style="color:var(--ball)">Stringing</span></div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#log" data-tab="log">Log</a>
+      <a href="#inventory" data-tab="inventory">Inventory</a>
+      <a href="#players" data-tab="players">Players</a>
+    </nav>
+    <div class="who" id="who"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- LOG -->
+  <section id="view-log">
+    <div class="kpis" id="kpis"></div>
+    <div class="logGrid">
+      <form class="panel" id="logForm" autocomplete="off">
+        <h2>Log a session</h2>
+        <div class="field">
+          <label class="lbl" for="pSearch">Tap everyone you strung</label>
+          <input id="pSearch" type="search" placeholder="Find a player">
+          <div class="chips" id="pChips" role="group" aria-label="Players"></div>
+        </div>
+        <div class="field">
+          <span class="lbl">This session</span>
+          <div class="sess" id="sessList"></div>
+        </div>
+        <div class="field"><label class="lbl" for="notes">Notes</label><input id="notes" type="text" placeholder="Optional, applies to the whole session"></div>
+        <button class="btn go" id="logBtn" type="submit" disabled>Tap a player to start</button>
+      </form>
+
+      <section class="panel" aria-labelledby="logTitle">
+        <div class="listHead">
+          <h2 id="logTitle">Recent jobs</h2>
+          <input id="logFilter" type="search" placeholder="Filter by player or string" aria-label="Filter log">
+        </div>
+        <div class="tableWrap"><table>
+          <thead><tr><th>When</th><th>Player</th><th>Qty</th><th>String</th><th>Stringer</th><th aria-label="Actions"></th></tr></thead>
+          <tbody id="logBody"></tbody>
+        </table></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- INVENTORY -->
+  <section id="view-inventory" hidden>
+    <div class="listHead">
+      <div style="display:grid;gap:4px"><h2>String inventory</h2><span class="muted">Estimates update as jobs are logged. Do a count any time to correct them.</span></div>
+      <button class="btn primary writeOnly" id="addString" type="button">Add a string</button>
+    </div>
+    <div class="cards" id="invCards"></div>
+  </section>
+
+  <!-- PLAYERS -->
+  <section id="view-players" hidden>
+    <div class="listHead">
+      <div style="display:grid;gap:4px"><h2>Players and setups</h2><span class="muted">Each player's usual string and tension fill in automatically when you log for them.</span></div>
+      <button class="btn primary writeOnly" id="addPlayer" type="button">Add a player</button>
+    </div>
+    <div class="plist" id="plist"></div>
+  </section>
+</main>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+</body>
+</html>
+</body>
+</html>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</body>
+</html>
+<script src="firebase-config.js"></script>
+</body>
+</html>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const S = { players: [], strings: [], jobs: [], canWrite: false, name: "", ready: false };
+  const F = { session: [] };
+  let db = null, freshIds = new Set(), toastTimer = null;
+  const STRING_TYPES = ["Polyester", "Multifilament", "Synthetic gut", "Natural gut", "Kevlar / aramid"];
+  const PRESETS = [
+    ["Babolat RPM Blast 17", "1.25mm", "Polyester"], ["Luxilon ALU Power 16L", "1.25mm", "Polyester"],
+    ["Solinco Hyper-G 17", "1.20mm", "Polyester"], ["Head Lynx Tour 17", "1.25mm", "Polyester"],
+    ["Wilson NXT 16", "1.30mm", "Multifilament"], ["Tecnifibre X-One Biphase 17", "1.24mm", "Multifilament"],
+    ["Prince Synthetic Gut 16", "1.30mm", "Synthetic gut"]
+  ];
+
+  // ---------- helpers ----------
+  const el = (tag, props = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else if (v === true) n.setAttribute(k, "");
+      else if (v !== false && v != null) n.setAttribute(k, v);
+    }
+    for (const c of kids.flat()) if (c != null) n.append(c instanceof Node ? c : document.createTextNode(c));
+    return n;
+  };
+  const fmt = (n) => (Math.round(n * 10) / 10).toString();
+  const plural = (n, w) => `${fmt(n)} ${w}${n === 1 ? "" : "s"}`;
+  const byId = (arr, id) => arr.find((x) => x.id === id);
+  const DAY = 86400000;
+  function when(ms) {
+    const d = new Date(ms), now = new Date();
+    const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    if (d.toDateString() === now.toDateString()) return `Today ${time}`;
+    if (d.toDateString() === new Date(now - DAY).toDateString()) return `Yesterday ${time}`;
+    return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + time;
+  }
+
+  // Sets of a string used by one job. A hybrid splits each racquet half and half.
+  function usage(job, sid) {
+    const r = Number(job.racquets) || 0;
+    if (job.crossesId && job.crossesId !== job.mainsId) return (job.mainsId === sid ? r / 2 : 0) + (job.crossesId === sid ? r / 2 : 0);
+    return job.mainsId === sid ? r : 0;
+  }
+  // Estimated sets left = last count (or restock) minus everything logged since.
+  function estimate(s) {
+    let used = 0;
+    for (const j of S.jobs) if ((j.at || 0) > (s.baselineAt || 0)) used += usage(j, s.id);
+    return (Number(s.baselineSets) || 0) - used;
+  }
+  function used30(s) {
+    const since = Date.now() - 30 * DAY; let u = 0;
+    for (const j of S.jobs) if (j.at > since) u += usage(j, s.id);
+    return u;
+  }
+  function stringLabel(job) {
+    if (job.crossesId && job.crossesId !== job.mainsId) return `${job.mainsName} / ${job.crossesName}`;
+    return job.mainsName || "—";
+  }
+
+  function toast(msg, action) {
+    const root = $("toastRoot"); root.replaceChildren();
+    clearTimeout(toastTimer);
+    const t = el("div", { class: "toast", role: "status" }, el("span", { text: msg }));
+    if (action) t.append(el("button", { type: "button", text: action.label, onclick: () => { root.replaceChildren(); action.run(); } }));
+    root.append(t);
+    toastTimer = setTimeout(() => root.replaceChildren(), action ? 7000 : 3500);
+  }
+  function banner(msg, kind, action) {
+    const b = $("banner"); b.replaceChildren(msg); b.dataset.kind = kind || ""; b.hidden = !msg;
+    if (msg && action) b.append(" ", el("button", { type: "button", class: "linkish", text: action.label, onclick: action.run }));
+  }
+
+  async function write(fn, okMsg) {
+    if (!db) return false;
+    try { await fn(); if (okMsg) toast(okMsg); return true; }
+    catch (e) {
+      const code = e && e.code;
+      if (code === "permission-denied" || code === "unauthenticated") toast("The database refused that change. Check the Firestore rules (see README).");
+      else if (code === "resource-exhausted") toast("The free database limit was hit for today. Try again tomorrow.");
+      else toast("Couldn't save. Check your connection and try again.");
+      return false;
+    }
+  }
+
+  // ---------- modal ----------
+  function modal(title, body, actions) {
+    const root = $("modalRoot");
+    const close = () => root.replaceChildren();
+    const box = el("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": title },
+      el("h2", { text: title }), body, el("div", { class: "actions" }, actions(close)));
+    const scrim = el("div", { class: "scrim", onclick: (e) => { if (e.target === scrim) close(); } }, box);
+    scrim.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+    root.replaceChildren(scrim);
+    const first = box.querySelector("input, select"); if (first) first.focus();
+    return close;
+  }
+  const fieldEl = (label, input, hint) => el("div", { class: "field" }, el("label", { class: "lbl", for: input.id, text: label }), input, hint ? el("span", { class: "hint", text: hint }) : null);
+  function stringOptions(sel, value, blankLabel) {
+    sel.replaceChildren();
+    if (blankLabel) sel.append(el("option", { value: "", text: blankLabel }));
+    for (const s of [...S.strings].sort((a, b) => a.name.localeCompare(b.name))) sel.append(el("option", { value: s.id, text: s.name }));
+    sel.value = value && byId(S.strings, value) ? value : (blankLabel ? "" : (sel.options[0]?.value || ""));
+  }
+
+  // ---------- string modals ----------
+  function stringModal(s) {
+    const isNew = !s;
+    const est = s ? Math.max(0, estimate(s)) : 0;
+    const spr0 = s ? s.setsPerReel : 16;
+    const name = el("input", { id: "m-sname", value: s?.name || "", placeholder: "e.g. Babolat RPM Blast 17" });
+    const gauge = el("input", { id: "m-gauge", value: s?.gauge || "", placeholder: "1.25mm / 17" });
+    const type = el("select", { id: "m-type" }, STRING_TYPES.map((t) => el("option", { value: t, text: t })));
+    type.value = s?.type || "Polyester";
+    const spr = el("input", { id: "m-spr", type: "number", min: "1", step: "1", value: spr0 });
+    const reels = el("input", { id: "m-reels", type: "number", min: "0", step: "1", value: Math.floor(est / spr0) });
+    const loose = el("input", { id: "m-loose", type: "number", min: "0", step: "0.5", value: fmt(est - Math.floor(est / spr0) * spr0) });
+    const low = el("input", { id: "m-low", type: "number", min: "0", step: "1", value: s?.lowAt ?? 5 });
+    const presets = isNew ? el("div", { class: "presets" }, PRESETS.map(([n, g, t]) => el("button", { type: "button", class: "chip", text: n, onclick: () => { name.value = n; gauge.value = g; type.value = t; } }))) : null;
+    const body = el("div", { style: "display:grid;gap:12px" },
+      isNew ? el("span", { class: "hint", text: "Quick fill:" }) : null, presets,
+      fieldEl("String name", name),
+      el("div", { class: "row2" }, fieldEl("Gauge", gauge), fieldEl("Type", type)),
+      fieldEl("Sets per reel", spr, "A 200m (660ft) reel is about 16 to 18 sets."),
+      el("h3", { text: isNew ? "Starting stock" : "Count what's on the shelf" }),
+      el("div", { class: "row2" }, fieldEl("Full reels", reels), fieldEl("Loose sets", loose, "Packaged sets plus what's left on an open reel.")),
+      fieldEl("Warn me when below (sets)", low));
+    modal(isNew ? "Add a string" : "Edit / count " + s.name, body, (close) => [
+      !isNew ? el("button", { class: "btn danger", type: "button", text: "Delete string", onclick: (e) => confirmBtn(e.target, "Really delete?", async () => { await write(() => db.doc("strings/" + s.id).delete(), "String deleted"); close(); }) }) : null,
+      el("button", { class: "btn", type: "button", text: "Cancel", onclick: close }),
+      el("button", { class: "btn primary", type: "button", text: "Save", onclick: async () => {
+        const n = name.value.trim(); if (!n) { name.focus(); return; }
+        const sp = Math.max(1, Number(spr.value) || 16);
+        const total = Math.max(0, (Number(reels.value) || 0) * sp + (Number(loose.value) || 0));
+        const body = { name: n, gauge: gauge.value.trim(), type: type.value, setsPerReel: sp, lowAt: Math.max(0, Number(low.value) || 0) };
+        const counted = isNew || Math.abs(total - est) > 0.01 || sp !== spr0;
+        if (counted) Object.assign(body, { baselineSets: total, baselineAt: Date.now(), countedBy: S.name || null });
+        const ok = await write(() => isNew ? db.collection("strings").add(body) : db.doc("strings/" + s.id).update(body), isNew ? "String added" : (counted ? "Inventory count saved" : "Saved"));
+        if (ok) close();
+      } })
+    ]);
+  }
+  function restockModal(s) {
+    const n = el("input", { id: "m-restock", type: "number", min: "0", step: "1", value: 1 });
+    const sets = el("input", { id: "m-restock-sets", type: "number", min: "0", step: "1", value: 0 });
+    modal("Restock " + s.name, el("div", { class: "row2" }, fieldEl("Reels received", n), fieldEl("Loose sets received", sets)), (close) => [
+      el("button", { class: "btn", type: "button", text: "Cancel", onclick: close }),
+      el("button", { class: "btn primary", type: "button", text: "Add to stock", onclick: async () => {
+        const add = (Number(n.value) || 0) * s.setsPerReel + (Number(sets.value) || 0);
+        if (add <= 0) return close();
+        const now = Math.max(0, estimate(s)) + add;
+        if (await write(() => db.doc("strings/" + s.id).update({ baselineSets: now, baselineAt: Date.now() }), `Added ${plural(add, "set")}`)) close();
+      } })
+    ]);
+  }
+
+  // ---------- player modal ----------
+  function playerModal(p, after) {
+    const isNew = !p;
+    const name = el("input", { id: "m-pname", value: p?.name || "", placeholder: "Player name" });
+    const mains = el("select", { id: "m-pmains" }); stringOptions(mains, p?.mainsId, "No usual string");
+    const crosses = el("select", { id: "m-pcross" }); stringOptions(crosses, p?.crossesId, "Same as mains");
+    const tension = el("input", { id: "m-ptension", type: "number", step: "0.5", min: "30", max: "80", value: p?.tension ?? "", placeholder: "52" });
+    const notes = el("input", { id: "m-pnotes", value: p?.notes || "", placeholder: "Racquet model, prestretch, knots…" });
+    const body = el("div", { style: "display:grid;gap:12px" }, fieldEl("Name", name),
+      el("div", { class: "row2" }, fieldEl("Usual mains", mains), fieldEl("Crosses", crosses)),
+      fieldEl("Tension (lbs)", tension), fieldEl("Notes", notes));
+    modal(isNew ? "Add a player" : "Edit " + p.name, body, (close) => [
+      !isNew ? el("button", { class: "btn danger", type: "button", text: "Remove player", onclick: (e) => confirmBtn(e.target, "Really remove?", async () => { await write(() => db.doc("players/" + p.id).delete(), "Player removed"); close(); }) }) : null,
+      el("button", { class: "btn", type: "button", text: "Cancel", onclick: close }),
+      el("button", { class: "btn primary", type: "button", text: "Save", onclick: async () => {
+        const n = name.value.trim(); if (!n) { name.focus(); return; }
+        const t = tension.value === "" ? null : Number(tension.value);
+        const body = { name: n, mainsId: mains.value || null, crossesId: crosses.value || null, tension: t, notes: notes.value.trim() };
+        let ref = null;
+        const ok = await write(async () => { if (isNew) ref = await db.collection("players").add(body); else await db.doc("players/" + p.id).update(body); }, isNew ? `${n} added` : "Saved");
+        if (ok) { close(); if (after && ref) after(ref.id, body); }
+      } })
+    ]);
+  }
+
+  function confirmBtn(btn, label, run) {
+    if (btn.dataset.armed) { run(); return; }
+    const orig = btn.textContent; btn.dataset.armed = "1"; btn.textContent = label;
+    setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = orig; } }, 3000);
+  }
+
+  // ---------- log form: a session is a list of players, each with a racquet count ----------
+  // F.session: [{ playerId, racquets, mainsId? }] — mainsId only when the player has no saved string yet.
+  const inSession = (pid) => F.session.find((r) => r.playerId === pid);
+  function setupOf(p) {
+    const m = byId(S.strings, p?.mainsId), c = byId(S.strings, p?.crossesId);
+    if (!m) return null;
+    return { m, c: c && c.id !== m.id ? c : null, label: (c && c.id !== m.id ? `${m.name} / ${c.name}` : m.name) + (p.tension != null ? ` · ${fmt(p.tension)} lbs` : "") };
+  }
+  function togglePlayer(pid) {
+    if (inSession(pid)) F.session = F.session.filter((r) => r.playerId !== pid);
+    else F.session.push({ playerId: pid, racquets: 1 });
+    renderChips(); renderSession();
+  }
+  function renderChips() {
+    const q = $("pSearch").value.trim().toLowerCase();
+    const lastAt = {}; for (const j of S.jobs) if (!(j.playerId in lastAt)) lastAt[j.playerId] = j.at;
+    const list = S.players.filter((p) => !q || p.name.toLowerCase().includes(q))
+      .sort((a, b) => (lastAt[b.id] || 0) - (lastAt[a.id] || 0) || a.name.localeCompare(b.name));
+    const box = $("pChips"); box.replaceChildren();
+    for (const p of list) box.append(el("button", { type: "button", class: "chip", "aria-pressed": String(!!inSession(p.id)), text: p.name, onclick: () => togglePlayer(p.id) }));
+    if (S.canWrite) box.append(el("button", { type: "button", class: "chip add", text: q ? `+ Add "${$("pSearch").value.trim()}"` : "+ New player", onclick: () => {
+      playerModal(null, (id) => { $("pSearch").value = ""; S.pendingSelect = id; });
+      if (q) $("m-pname").value = $("pSearch").value.trim();
+    } }));
+    if (!list.length && !S.canWrite) box.append(el("span", { class: "muted", text: S.ready ? "No players yet." : "Loading…" }));
+  }
+  function renderSession() {
+    const box = $("sessList"); box.replaceChildren();
+    F.session = F.session.filter((r) => byId(S.players, r.playerId));
+    if (!F.session.length) box.append(el("div", { class: "none", text: "No one yet. Tap names above, then set how many racquets each." }));
+    for (const r of F.session) {
+      const p = byId(S.players, r.playerId), su = setupOf(p);
+      const step = (d) => { r.racquets = Math.max(1, Math.min(20, r.racquets + d)); renderSession(); };
+      const row = el("div", { class: "srow" },
+        el("div", {}, el("div", { class: "who", text: p.name }), el("div", { class: "setup", text: su ? su.label : "No saved string. Pick one below and it'll be saved to their profile." })),
+        el("div", { class: "stepper" },
+          el("button", { type: "button", "aria-label": `One fewer for ${p.name}`, text: "−", onclick: () => step(-1) }),
+          el("output", { "aria-live": "polite", text: String(r.racquets) }),
+          el("button", { type: "button", "aria-label": `One more for ${p.name}`, text: "+", onclick: () => step(1) }),
+          el("button", { type: "button", class: "x", "aria-label": `Remove ${p.name}`, text: "×", onclick: () => togglePlayer(p.id) })));
+      if (!su) {
+        const sel = el("select", { id: "sess-str-" + p.id, "aria-label": `String for ${p.name}`, onchange: (e) => { r.mainsId = e.target.value; updateLogBtn(); } });
+        stringOptions(sel, r.mainsId, "Pick a string");
+        row.append(sel);
+      }
+      box.append(row);
+    }
+    updateLogBtn();
+  }
+  function updateLogBtn() {
+    const b = $("logBtn");
+    if (!S.canWrite) { b.disabled = true; b.textContent = "Enter your name to log"; return; }
+    if (!S.strings.length) { b.disabled = true; b.textContent = "Add a string first"; return; }
+    if (!F.session.length) { b.disabled = true; b.textContent = "Tap a player to start"; return; }
+    const missing = F.session.filter((r) => !setupOf(byId(S.players, r.playerId)) && !byId(S.strings, r.mainsId));
+    if (missing.length) { b.disabled = true; b.textContent = "Pick a string for " + byId(S.players, missing[0].playerId).name; return; }
+    const total = F.session.reduce((n, r) => n + r.racquets, 0);
+    b.disabled = false;
+    b.textContent = F.session.length === 1 ? `Log ${plural(total, "racquet")} for ${byId(S.players, F.session[0].playerId).name}` : `Log ${plural(total, "racquet")} · ${F.session.length} players`;
+  }
+  $("pSearch").addEventListener("input", renderChips);
+  $("logForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!S.canWrite || !F.session.length) return;
+    const at = Date.now(), sessionId = "s" + at.toString(36), notes = $("notes").value.trim();
+    const jobs = [], profileFixes = [];
+    for (const r of F.session) {
+      const p = byId(S.players, r.playerId); if (!p) continue;
+      let su = setupOf(p);
+      if (!su) { const m = byId(S.strings, r.mainsId); if (!m) return; su = { m, c: null }; profileFixes.push([p.id, m.id]); }
+      jobs.push({ playerId: p.id, playerName: p.name, racquets: r.racquets, mainsId: su.m.id, mainsName: su.m.name,
+        crossesId: su.c ? su.c.id : null, crossesName: su.c ? su.c.name : null, tension: p.tension ?? null,
+        notes, at, sessionId, stringerName: S.name || null });
+    }
+    const refs = jobs.map(() => db.collection("jobs").doc());
+    $("logBtn").disabled = true;
+    const ok = await write(() => Promise.all(refs.map((ref, i) => ref.set(jobs[i]))));
+    if (ok) {
+      for (const [pid, sid] of profileFixes) await write(() => db.doc("players/" + pid).update({ mainsId: sid }));
+      freshIds = new Set(refs.map((r) => r.id));
+      const total = jobs.reduce((n, j) => n + j.racquets, 0);
+      toast(`Logged ${plural(total, "racquet")} for ${jobs.length === 1 ? jobs[0].playerName : jobs.length + " players"}`, { label: "Undo", run: () => write(() => Promise.all(refs.map((r) => r.delete())), "Session removed") });
+      $("notes").value = ""; $("pSearch").value = ""; F.session = [];
+      renderChips(); renderSession();
+    }
+    updateLogBtn();
+  });
+  $("logFilter").addEventListener("input", renderLog);
+
+  // ---------- renders ----------
+  function renderKpis() {
+    const now = new Date(), wk = new Date(now); wk.setHours(0, 0, 0, 0); wk.setDate(wk.getDate() - ((wk.getDay() + 6) % 7));
+    let week = 0, month = 0; const mStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    for (const j of S.jobs) { if (j.at >= wk.getTime()) week += j.racquets; if (j.at >= mStart) month += j.racquets; }
+    const low = S.strings.filter((s) => estimate(s) <= (s.lowAt ?? 5));
+    const k = (big, lbl, sub) => el("div", { class: "kpi" }, el("h3", { text: lbl }), el("b", { class: "num", text: big }), sub ? el("small", { text: sub }) : null);
+    $("kpis").replaceChildren(
+      k(fmt(week), "Racquets this week"),
+      k(fmt(month), "Racquets this month"),
+      k(String(S.players.length), "Players"),
+      k(String(low.length), "Strings running low", low.length ? low.map((s) => s.name).slice(0, 3).join(", ") : "All stocked")
+    );
+  }
+  function renderLog() {
+    const q = $("logFilter").value.trim().toLowerCase();
+    const rows = S.jobs.filter((j) => !q || (j.playerName || "").toLowerCase().includes(q) || stringLabel(j).toLowerCase().includes(q)).slice(0, 200);
+    const body = $("logBody"); body.replaceChildren();
+    if (!rows.length) {
+      body.append(el("tr", {}, el("td", { colspan: "6", class: "empty", text: !S.ready ? "Loading the log…" : (S.jobs.length ? "No jobs match that filter." : "No jobs yet. Tap the players you strung to log your first session.") })));
+      return;
+    }
+    for (const j of rows) {
+      const who = j.stringerName || "—";
+      const del = S.canWrite ? el("button", { class: "btn small danger", type: "button", "aria-label": "Delete entry", text: "Delete", onclick: (e) => confirmBtn(e.target, "Sure?", () => write(() => db.doc("jobs/" + j.id).delete(), "Entry deleted")) }) : null;
+      body.append(el("tr", { class: freshIds.has(j.id) ? "fresh" : "" },
+        el("td", { class: "num", style: "white-space:nowrap" }, when(j.at)),
+        el("td", {}, el("div", { text: j.playerName || "—", style: "font-weight:600" }), j.notes ? el("div", { class: "sub", text: j.notes }) : null),
+        el("td", {}, el("span", { class: "qty", text: fmt(j.racquets) })),
+        el("td", {}, el("div", { text: stringLabel(j) }), j.tension != null ? el("div", { class: "sub num", text: `${fmt(j.tension)} lbs` }) : null),
+        el("td", { text: who }),
+        el("td", {}, del)));
+    }
+  }
+  function renderInventory() {
+    const box = $("invCards"); box.replaceChildren();
+    if (!S.strings.length) { box.append(el("div", { class: "card empty" }, S.ready ? "No strings yet. Add the strings your team uses with their current reel and set counts." : "Loading inventory…")); return; }
+    const list = [...S.strings].sort((a, b) => estimate(a) / (a.lowAt || 1) - estimate(b) / (b.lowAt || 1));
+    for (const s of list) {
+      const est = estimate(s), left = Math.max(0, est), spr = s.setsPerReel || 16;
+      const full = Math.floor(left / spr), part = left - full * spr;
+      const status = est <= 0 ? ["out", "Out"] : est <= (s.lowAt ?? 5) ? ["low", "Running low"] : ["ok", "Stocked"];
+      const reelIcons = el("div", { class: "reels", "aria-hidden": "true" });
+      for (let i = 0; i < Math.min(full, 12); i++) reelIcons.append(el("span", { class: "reel" }));
+      if (full > 12) reelIcons.append(el("span", { class: "muted", text: `+${full - 12}` }));
+      if (part > 0) reelIcons.append(el("span", { class: "reel part", style: `--p:${Math.round(part / spr * 100)}` }));
+      const u = used30(s), weeks = u > 0 ? left / (u / 30 * 7) : null;
+      box.append(el("article", { class: "card" },
+        el("div", { style: "display:flex;justify-content:space-between;gap:10px;align-items:start" },
+          el("div", {}, el("div", { class: "name", text: s.name }), el("div", { class: "meta", text: [s.gauge, s.type, `${spr} sets/reel`].filter(Boolean).join(" · ") })),
+          el("span", { class: "pill " + status[0], text: status[1] })),
+        el("div", { class: "big" }, el("b", { class: "num", text: fmt(left) }), el("span", { class: "muted", text: "sets left (est.)" })),
+        el("div", { class: "num", text: `${plural(full, "full reel")} + ${plural(part, "set")}` }),
+        reelIcons,
+        el("div", { class: "est" }, `Used ${plural(u, "set")} in the last 30 days` + (weeks != null ? ` · about ${weeks < 1 ? "under a week" : plural(Math.round(weeks), "week")} left at this pace` : "")),
+        el("div", { class: "est", text: `Last counted ${s.baselineAt ? when(s.baselineAt) : "never"}` + (est < 0 ? ` · logged ${fmt(-est)} more than counted, so recount` : "") }),
+        S.canWrite ? el("div", { class: "cardActions" },
+          el("button", { class: "btn small primary", type: "button", text: "Count / edit", onclick: () => stringModal(s) }),
+          el("button", { class: "btn small", type: "button", text: "Restock", onclick: () => restockModal(s) })) : null));
+    }
+  }
+  function renderPlayers() {
+    const box = $("plist"); box.replaceChildren();
+    if (!S.players.length) { box.append(el("div", { class: "panel empty", text: S.ready ? "No players yet. Add your roster so stringers can tap a name to log a job." : "Loading players…" })); return; }
+    const tot = {}, last = {};
+    for (const j of S.jobs) { tot[j.playerId] = (tot[j.playerId] || 0) + j.racquets; if (!(j.playerId in last)) last[j.playerId] = j.at; }
+    for (const p of [...S.players].sort((a, b) => a.name.localeCompare(b.name))) {
+      const m = byId(S.strings, p.mainsId), c = byId(S.strings, p.crossesId);
+      const setup = m ? (c && c.id !== m.id ? `${m.name} / ${c.name}` : m.name) : "No usual string set";
+      box.append(el("div", { class: "prow" },
+        el("div", {}, el("div", { class: "pn", text: p.name }), p.notes ? el("div", { class: "sub muted", text: p.notes, style: "font-size:13px" }) : null),
+        el("div", { class: "setup" }, el("div", { text: setup }), el("div", { class: "muted num", style: "font-size:13px", text: p.tension != null ? `${fmt(p.tension)} lbs` : "Tension not set" })),
+        el("div", { style: "text-align:right" }, el("div", { class: "num", style: "font-weight:600", text: plural(tot[p.id] || 0, "racquet") }), el("div", { class: "muted", style: "font-size:12px", text: last[p.id] ? "Last " + when(last[p.id]) : "Not strung yet" })),
+        S.canWrite ? el("button", { class: "btn small", type: "button", text: "Edit", onclick: () => playerModal(p) }) : el("span")));
+    }
+  }
+  function renderAll() {
+    if (S.pendingSelect && byId(S.players, S.pendingSelect)) { const id = S.pendingSelect; S.pendingSelect = null; if (!inSession(id)) F.session.push({ playerId: id, racquets: 1 }); }
+    renderKpis(); renderChips(); renderSession(); renderLog(); renderInventory(); renderPlayers();
+  }
+  function applyWriteGate() {
+    document.querySelectorAll(".writeOnly").forEach((n) => (n.hidden = !S.canWrite));
+    renderWho();
+    if (!S.canWrite && db) banner("Enter your name to log jobs or update inventory. Anyone can view the log.", "", { label: "Enter your name", run: nameModal });
+    else if (db) banner("");
+    renderAll();
+  }
+
+  // ---------- tabs ----------
+  function showTab() {
+    const t = ["log", "inventory", "players"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "log";
+    for (const n of ["log", "inventory", "players"]) $("view-" + n).hidden = n !== t;
+    document.querySelectorAll("nav.tabs a").forEach((a) => { if (a.dataset.tab === t) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  }
+  window.addEventListener("hashchange", showTab);
+  $("addString").addEventListener("click", () => stringModal(null));
+  $("addPlayer").addEventListener("click", () => playerModal(null));
+
+  // ---------- name sign-in (name only, remembered on this device) ----------
+  const NAME_KEY = "stringer-name";
+  const loadName = () => { try { return localStorage.getItem(NAME_KEY) || ""; } catch { return ""; } };
+  const saveName = (n) => { try { n ? localStorage.setItem(NAME_KEY, n) : localStorage.removeItem(NAME_KEY); } catch {} };
+  function setName(n) { S.name = n; S.canWrite = !!n; saveName(n); applyWriteGate(); }
+  function renderWho() {
+    const w = $("who"); w.replaceChildren();
+    if (!db) return;
+    if (S.name) w.append(el("span", { text: S.name }), el("button", { type: "button", text: "Not you?", onclick: () => { setName(""); nameModal(); } }));
+    else w.append(el("button", { type: "button", text: "Enter your name", onclick: nameModal }));
+  }
+  function nameModal() {
+    const input = el("input", { id: "m-myname", placeholder: "First and last name", autocomplete: "name", list: "m-names" });
+    const known = [...new Set(S.jobs.map((j) => j.stringerName).filter(Boolean))].sort();
+    const dl = el("datalist", { id: "m-names" }, known.map((n) => el("option", { value: n })));
+    const quick = known.length ? el("div", { class: "presets" }, known.slice(0, 12).map((n) => el("button", { type: "button", class: "chip", text: n, onclick: () => { input.value = n; } }))) : null;
+    const body = el("div", { style: "display:grid;gap:12px" }, quick, fieldEl("Your name", input, "Shows next to the jobs you log. This device remembers it."), dl);
+    modal("Who's stringing?", body, (close) => [
+      el("button", { class: "btn", type: "button", text: "Just viewing", onclick: close }),
+      el("button", { class: "btn primary", type: "button", text: "Start logging", onclick: () => {
+        const n = input.value.trim().replace(/\s+/g, " ").slice(0, 60); if (!n) { input.focus(); return; }
+        setName(n); close(); toast(`Hi ${n}. You're set to log.`);
+      } })
+    ]);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.closest(".modal").querySelector(".btn.primary").click(); });
+  }
+
+  // ---------- boot ----------
+  showTab(); renderAll();
+  (async () => {
+    const cfg = window.FIREBASE_CONFIG;
+    if (!window.firebase || !cfg || !cfg.apiKey || cfg.apiKey.startsWith("PASTE")) {
+      S.ready = true; banner("This site isn't connected to its database yet. Add the Firebase settings to firebase-config.js (see README).", "warn"); renderAll(); return;
+    }
+    firebase.initializeApp(cfg);
+    db = firebase.firestore();
+    setName(loadName());
+    const onErr = () => banner("Lost the connection to the log. Reload the page to reconnect.", "warn");
+    let got = 0; const settle = () => { if (++got >= 3) S.ready = true; };
+    const snapDocs = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    db.collection("players").onSnapshot((s) => { S.players = snapDocs(s).filter((p) => p.name); settle(); renderAll(); }, onErr);
+    db.collection("strings").onSnapshot((s) => { S.strings = snapDocs(s).filter((x) => x.name); settle(); renderAll(); }, onErr);
+    db.collection("jobs").orderBy("at", "desc").limit(1000).onSnapshot((s) => { S.jobs = snapDocs(s); settle(); renderAll(); }, onErr);
+  })();
+})();
+</script>
+</body>
+</html>
